@@ -132,9 +132,11 @@ def online(eval_trajs, model, n_eval, horizon, var, bandit_type):
         model,
         sample=True,
         batch_size=len(envs))
-    cum_means = deploy_online_vec(vec_env, controller, horizon).T
+    cum_means, meta_info = deploy_online_vec(vec_env, controller, horizon, include_meta=True)
+    cum_means = cum_means.T
+    np.savez('online_DPT_meta_info.npz', **meta_info)
     assert cum_means.shape[0] == n_eval
-    all_means['Lnr'] = cum_means
+    all_means['DPT'] = cum_means
 
 
     controller = EmpMeanPolicy(
@@ -280,14 +282,23 @@ def offline(eval_trajs, model, n_eval, horizon, var, bandit_type):
     
     _, _, _, rs_opt = vec_env.deploy_eval(opt_policy)
     _, _, _, rs_emp = vec_env.deploy_eval(emp_policy)
-    _, _, _, rs_lnr = vec_env.deploy_eval(lnr_policy)
+    states, actions, next_states, rs_lnr = vec_env.deploy_eval(lnr_policy)
     _, _, _, rs_lcb = vec_env.deploy_eval(lcb_policy)
     _, _, _, rs_thmp = vec_env.deploy_eval(thomp_policy)
+
+    meta_info = {
+            'context_states': states,
+            'context_actions': actions,
+            'context_next_states': next_states,
+            'context_rewards': rs_lnr,
+        }
+
+    np.savez('offline_DPT_meta_info.npz', **meta_info)
 
 
     baselines = {
         'opt': np.array(rs_opt),
-        'lnr': np.array(rs_lnr),
+        'DPT': np.array(rs_lnr),
         'emp': np.array(rs_emp),
         'thmp': np.array(rs_thmp),
         'lcb': np.array(rs_lcb),
