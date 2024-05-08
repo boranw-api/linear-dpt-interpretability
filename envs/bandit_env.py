@@ -67,7 +67,7 @@ class BanditEnv(BaseEnv):
         ## Reward 3
         random_step = np.random.randint(0, 500) 
         mu = 0.5 * np.sin(2 * np.pi * random_step / 500)
-        r = np.random.normal(mu, self.var)
+        r = self.means[a] + np.random.normal(mu, self.var)
         
         
             
