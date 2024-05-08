@@ -134,7 +134,7 @@ def online(eval_trajs, model, n_eval, horizon, var, bandit_type):
         batch_size=len(envs))
     cum_means, meta_info = deploy_online_vec(vec_env, controller, horizon, include_meta=True)
     cum_means = cum_means.T
-    np.savez('online_DPT_meta_info.npz', **meta_info)
+    np.savez('online_DPT_meta_info_square.npz', **meta_info)
     assert cum_means.shape[0] == n_eval
     all_means['DPT'] = cum_means
 
@@ -293,7 +293,7 @@ def offline(eval_trajs, model, n_eval, horizon, var, bandit_type):
             'context_rewards': rs_lnr,
         }
 
-    np.savez('offline_DPT_meta_info.npz', **meta_info)
+    np.savez('offline_DPT_meta_info_square.npz', **meta_info)
 
 
     baselines = {

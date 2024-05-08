@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 import torch
+from scipy import signal
 
 from envs.base_env import BaseEnv
 
@@ -44,7 +45,7 @@ class BanditEnv(BaseEnv):
 
         # some naming issue here
         self.H_context = H
-        self.H = 1
+        self.H = 500 ## changed from 1 to 500
 
     def get_arm_value(self, u):
         return np.sum(self.means * u)
@@ -56,18 +57,19 @@ class BanditEnv(BaseEnv):
     def transit(self, x, u):
         a = np.argmax(u)
 
-        '''
-        if self.type == 'uniform':
-            r = self.means[a] + np.random.normal(0, self.var)
-        elif self.type == 'bernoulli':
-            r = np.random.binomial(1, self.means[a])
-        else:
-            raise NotImplementedError
-        '''
-
         # reward assignment in a stochastic fashion with a sinusoidial pattern
+        ## Reward 1
+        # r = self.means[a] + np.random.normal(0, self.var) + 0.5 * signal.square(2* np.pi * 5 * random_step)
+
+        ## Reward 2
+        # r = self.means[a] + np.random.normal(0, self.var) + 0.5 * signal.square(2* np.pi * 5 * random_step)
+
+        ## Reward 3
         random_step = np.random.randint(0, 500) 
-        r = self.means[a] + np.random.normal(0, self.var) + 0.5 * np.sin(2 * np.pi * random_step / 500)
+        mu = 0.5 * np.sin(2 * np.pi * random_step / 500)
+        r = np.random.normal(mu, self.var)
+        
+        
             
         return self.state.copy(), r
 
@@ -139,6 +141,7 @@ class BanditEnvVec(BaseEnv):
         done = False
 
         while not done:
+            import ipdb;ipdb.set_trace()
             u = ctrl.act_numpy_vec(x)
 
             xs.append(x)
