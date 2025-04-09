@@ -9,7 +9,7 @@ from skimage.transform import resize
 from IPython import embed
 
 import common_args
-from envs import darkroom_env, bandit_env
+from envs import bandit_env
 from ctrls.ctrl_bandit import ThompsonSamplingPolicy
 from evals import eval_bandit
 from utils import (

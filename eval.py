@@ -7,8 +7,8 @@ import torch
 from IPython import embed
 
 import common_args
-from evals import eval_bandit, eval_linear_bandit, eval_darkroom
-from net import Transformer, ImageTransformer
+from evals import eval_bandit
+from net import Transformer, ImageTransformer, LinearTransformer
 from utils import (
     build_bandit_data_filename,
     build_bandit_model_filename,
@@ -134,7 +134,7 @@ if __name__ == '__main__':
         config.update({'image_size': 25})
         model = ImageTransformer(config).to(device)
     else:
-        model = Transformer(config).to(device)
+        model = LinearTransformer(config).to(device)
     
     tmp_filename = filename
     if epoch < 0:

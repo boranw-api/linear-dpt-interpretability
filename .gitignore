@@ -12,3 +12,13 @@ __pycache__
 *.pt
 *.pkl
 datasets*
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+*.npz
+
+behaviours_old/
+
+.DS_Store

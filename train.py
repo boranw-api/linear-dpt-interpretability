@@ -15,7 +15,7 @@ import numpy as np
 import common_args
 import random
 from dataset import Dataset, ImageDataset
-from net import Transformer, ImageTransformer
+from net import Transformer, ImageTransformer, LinearTransformer
 from utils import (
     build_bandit_data_filename,
     build_bandit_model_filename,
@@ -196,7 +196,8 @@ if __name__ == '__main__':
         config.update({'image_size': 25, 'store_gpu': False})
         model = ImageTransformer(config).to(device)
     else:
-        model = Transformer(config).to(device)
+        # model = Transformer(config).to(device)
+        model = LinearTransformer(config).to(device)
 
     params = {
         'batch_size': 64,

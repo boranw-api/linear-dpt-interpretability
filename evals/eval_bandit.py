@@ -66,7 +66,7 @@ def deploy_online_vec(vec_env, controller, horizon, include_meta=False):
     context_rewards = np.zeros((num_envs, horizon, 1))
 
     cum_means = []
-    print("Deplying online vectorized...")
+    print("Deploying online vectorized...")
     for h in range(horizon):
         batch = {
             'context_states': context_states[:, :h, :],
@@ -79,7 +79,20 @@ def deploy_online_vec(vec_env, controller, horizon, include_meta=False):
 
         states_lnr, actions_lnr, next_states_lnr, rewards_lnr = vec_env.deploy(
             controller)
-
+        
+        if states_lnr.shape[0] != num_envs:
+            if states_lnr.size == num_envs * vec_env.dx: 
+                states_lnr = states_lnr.reshape(num_envs, vec_env.dx)
+                actions_lnr = actions_lnr.reshape(num_envs, vec_env.du)
+                next_states_lnr = next_states_lnr.reshape(num_envs, vec_env.dx)
+                rewards_lnr = rewards_lnr.reshape(num_envs, 1)
+            else:  
+                step = states_lnr.shape[0] // num_envs
+                states_lnr = states_lnr[::step][:num_envs]
+                actions_lnr = actions_lnr[::step][:num_envs]
+                next_states_lnr = next_states_lnr[::step][:num_envs]
+                rewards_lnr = rewards_lnr[::step][:num_envs]
+        
         context_states[:, h, :] = states_lnr
         context_actions[:, h, :] = actions_lnr
         context_next_states[:, h, :] = next_states_lnr
@@ -88,7 +101,7 @@ def deploy_online_vec(vec_env, controller, horizon, include_meta=False):
         mean = vec_env.get_arm_value(actions_lnr)
         cum_means.append(mean)
 
-    print("Deplyed online vectorized")
+    print("Deployed online vectorized")
     
     cum_means = np.array(cum_means)
     if not include_meta:
