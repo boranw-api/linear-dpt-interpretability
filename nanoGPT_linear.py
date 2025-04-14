@@ -30,10 +30,6 @@ class CausalSelfAttention(nn.Module):
         self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd, bias=config.bias)
         self.c_proj = nn.Linear(config.n_embd, config.n_embd, bias=config.bias)
 
-        # dropout removed 
-        self.attn_dropout = nn.Identity()
-        self.resid_dropout = nn.Identity()
-
         self.register_buffer("bias", torch.tril(torch.ones(config.block_size, config.block_size))
                                         .view(1, 1, config.block_size, config.block_size))
 
@@ -46,8 +42,10 @@ class CausalSelfAttention(nn.Module):
         k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
         v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
 
-        # softmax removed 
+        # softmax added back with attention masking to guarantee auto-regressive property
         att = (q @ k.transpose(-2, -1)) * (1.0 / (k.size(-1) ** 0.5))
+        att = att.masked_fill(self.bias[:, :, :T, :T] == 0, float('-inf'))
+        att = F.softmax(att, dim=-1)  
 
         y = att @ v
 
@@ -146,7 +144,7 @@ class GPT(nn.Module):
             x = block(x)
             
         x = self.ln_f(x)
-        
+
         return x, None
 
     def get_num_params(self, non_embedding=True):

@@ -124,40 +124,59 @@ class BanditEnvVec(BaseEnv):
         return self._envs
 
     def deploy_eval(self, ctrl):
+        # evaluating through the end of episodes of all environments here
+        single_step = False
         # No variance during evaluation
         tmp = [env.var for env in self._envs]
         for env in self._envs:
             env.var = 0.0
-        res = self.deploy(ctrl)
+        res = self.deploy(ctrl, single_step)
         for env, var in zip(self._envs, tmp):
             env.var = var
         return res
 
-    def deploy(self, ctrl):
+    def deploy(self, ctrl, single_step):
         x = self.reset()
-        xs = []
-        xps = []
-        us = []
-        rs = []
-        done = False
 
-        while not done:
-            # import ipdb;ipdb.set_trace()
+        # single step iteration
+        if single_step:
             u = ctrl.act_numpy_vec(x)
+            next_x, r, _, _ = self.step(u)
 
-            xs.append(x)
-            us.append(u)
+            xs = np.array(x)
+            us = np.array(u)
+            xps = np.array(next_x)
+            rs = np.array(r)
+        # otherwise iterate till the end of horizon
+        else:
+            xs = []
+            xps = []
+            us = []
+            rs = []
+            done = False
 
-            x, r, done, _ = self.step(u)
-            done = all(done)
+            while not done:
+                u = ctrl.act_numpy_vec(x)
 
-            rs.append(r)
-            xps.append(x)
+                xs.append(x)
+                us.append(u)
 
-        xs = np.concatenate(xs)
-        us = np.concatenate(us)
-        xps = np.concatenate(xps)
-        rs = np.concatenate(rs)
+                x, r, done, _ = self.step(u)
+                done = all(done)
+
+                rs.append(r)
+                xps.append(x)
+
+            xs = np.concatenate(xs)
+            us = np.concatenate(us)
+            xps = np.concatenate(xps)
+            rs = np.concatenate(rs)
+
+            # xs = np.array(xs[0])
+            # us = np.array(us[0])
+            # xps = np.array(xps[0])
+            # rs = np.array(rs[0])
+  
         return xs, us, xps, rs
 
     def get_arm_value(self, us):
