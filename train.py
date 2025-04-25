@@ -196,8 +196,8 @@ if __name__ == '__main__':
         config.update({'image_size': 25, 'store_gpu': False})
         model = ImageTransformer(config).to(device)
     else:
-        # model = Transformer(config).to(device)
-        model = LinearTransformer(config).to(device)
+        # model = LinearTransformer(config).to(device)
+        model = Transformer(config).to(device)
 
     params = {
         'batch_size': 64,

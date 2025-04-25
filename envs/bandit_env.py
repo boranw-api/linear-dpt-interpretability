@@ -29,6 +29,7 @@ def sample_linear(arms, H, var):
 class BanditEnv(BaseEnv):
     def __init__(self, means, H, var=0.0, type='uniform'):
         opt_a_index = np.argmax(means)
+        self.initial_means = means.copy()
         self.means = means
         self.opt_a_index = opt_a_index
         self.opt_a = np.zeros(means.shape)
@@ -37,6 +38,7 @@ class BanditEnv(BaseEnv):
         self.observation_space = gym.spaces.Box(low=1, high=1, shape=(1,))
         self.action_space = gym.spaces.Box(low=0, high=1, shape=(self.dim,))
         self.state = np.array([1])
+        self.processs_var = 0.005
         self.var = var
         self.dx = 1
         self.du = self.dim
@@ -45,32 +47,39 @@ class BanditEnv(BaseEnv):
 
         # some naming issue here
         self.H_context = H
-        self.H = 500 ## changed from 1 to 500
+        # possibly wrong as this is the length of an episode
+        # which means it is usually set to 1
+        self.H = 1
 
     def get_arm_value(self, u):
         return np.sum(self.means * u)
 
     def reset(self):
         self.current_step = 0
+        self.means = self.initial_means.copy()
         return self.state
 
     def transit(self, x, u):
         a = np.argmax(u)
 
-        # reward assignment in a stochastic fashion with a sinusoidial pattern
-        ## Reward 1
-        random_step = np.random.randint(0, 500) 
-        r = self.means[a] + np.random.normal(0, self.var) + 0.5 * signal.square(2* np.pi * 5 * random_step)
+        ## Reward 1: Restless Bandit
+        self.means = self.means + np.random.normal(0, self.processs_var, self.dim)
 
-        ## Reward 2
-        # r = self.means[a] + np.random.normal(0, self.var) + 0.5 * signal.square(2* np.pi * 5 * random_step)
+        # update to calculate the optimal arm by ground truth mean
+        self.opt_a_index = np.argmax(self.means)
+        self.opt_a = np.zeros(self.means.shape)
+        self.opt_a[self.opt_a_index] = 1.0
+
+        gt_mean = self.means[a]
+        r = gt_mean + np.random.normal(0, self.var)
+
+        ## Reward 2: 
+        # r = self.means[a] + np.random.normal(0, self.var)
 
         ## Reward 3
         # random_step = np.random.randint(0, 500) 
         # mu = 0.5 * np.sin(2 * np.pi * random_step / 500)
         # r = self.means[a] + np.random.normal(mu, self.var)
-        
-        
             
         return self.state.copy(), r
 
@@ -138,45 +147,29 @@ class BanditEnvVec(BaseEnv):
     def deploy(self, ctrl, single_step):
         x = self.reset()
 
-        # single step iteration
-        if single_step:
+        xs = []
+        xps = []
+        us = []
+        rs = []
+        done = False
+
+        while not done:
             u = ctrl.act_numpy_vec(x)
-            next_x, r, _, _ = self.step(u)
 
-            xs = np.array(x)
-            us = np.array(u)
-            xps = np.array(next_x)
-            rs = np.array(r)
-        # otherwise iterate till the end of horizon
-        else:
-            xs = []
-            xps = []
-            us = []
-            rs = []
-            done = False
+            xs.append(x)
+            us.append(u)
 
-            while not done:
-                u = ctrl.act_numpy_vec(x)
+            x, r, done, _ = self.step(u)
+            done = all(done)
 
-                xs.append(x)
-                us.append(u)
+            rs.append(r)
+            xps.append(x)
 
-                x, r, done, _ = self.step(u)
-                done = all(done)
-
-                rs.append(r)
-                xps.append(x)
-
-            xs = np.concatenate(xs)
-            us = np.concatenate(us)
-            xps = np.concatenate(xps)
-            rs = np.concatenate(rs)
-
-            # xs = np.array(xs[0])
-            # us = np.array(us[0])
-            # xps = np.array(xps[0])
-            # rs = np.array(rs[0])
-  
+        xs = np.concatenate(xs)
+        us = np.concatenate(us)
+        xps = np.concatenate(xps)
+        rs = np.concatenate(rs)
+        
         return xs, us, xps, rs
 
     def get_arm_value(self, us):
@@ -212,12 +205,9 @@ class LinearBanditEnv(BanditEnv):
         self.current_step = 0
         return self.state
 
-    # same stochastic reward assignment as BanditEnv
     def transit(self, x, u):
         a = np.argmax(u)
-        # r = self.means[a] + np.random.normal(0, self.var)
-        random_step = np.random.randint(0, 500) 
-        r = self.means[a] + np.random.normal(0, self.var)+ 0.5 * np.sin(2 * np.pi * random_step / 500)
+        r = self.means[a] + np.random.normal(0, self.var)
         return self.state.copy(), r
 
     def step(self, action):

@@ -134,7 +134,8 @@ if __name__ == '__main__':
         config.update({'image_size': 25})
         model = ImageTransformer(config).to(device)
     else:
-        model = LinearTransformer(config).to(device)
+        # model = LinearTransformer(config).to(device)
+        model = Transformer(config).to(device)
     
     tmp_filename = filename
     if epoch < 0:
